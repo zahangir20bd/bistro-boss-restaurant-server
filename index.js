@@ -31,6 +31,12 @@ async function run() {
     const reviewsCollection = client.db("bistroDB").collection("reviews");
     const cartCollection = client.db("bistroDB").collection("carts");
 
+    // get users from database
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
+
     // insert Users to the Database
     app.post("/users", async (req, res) => {
       const user = req.body;
