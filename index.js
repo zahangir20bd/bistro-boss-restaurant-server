@@ -65,8 +65,35 @@ async function run() {
       });
       res.send({ token });
     });
+
+    // Middleware for verify admin
+
+    // Warning: use verifyJWT before declare verifyAdmin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.role !== "admin") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
+    /**
+     * ===========================
+     *      Security Policies
+     * ===========================
+     *
+     * 0. Do not show secure link to those who should not see the link (whom are not Admin)
+     * 1. use JWT Token : verifyJWT
+     * 2. Use Verify Admin: Middleware
+     * */
+
     // get users from database
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
@@ -82,6 +109,28 @@ async function run() {
         return res.send({ message: "User Already Exists" });
       }
       const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // get and check user is Admin and send
+
+    /**
+     * ====================================
+     *            Security Layers:
+     * ====================================
+     * 1. verifyJWT
+     * 2. Verify Email same or not
+     * 3. Check User is Admin or Not
+     * */
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+
+      if (req.decoded.email !== email) {
+        res.send({ admin: false });
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === "admin" };
       res.send(result);
     });
 
